@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from .calendar_common import CalendarCommon
 
 
-def sbk_main():
+def sbk_main(output_dir):
     cc = CalendarCommon()
 
     def has_data_time(tag):
@@ -21,8 +21,6 @@ def sbk_main():
     sess_filter = ["Superpole", "Superpole Race", "Race", "Race 1", "Race 2"]
     # sess_filter_on = True
     classes = ["R3 bLU cRU Cup", "WorldSSP300", "WorldSSP", "WorldSBK"]
-    output_folder = "../../nixxo.github.io/calendars/wsbk/2023/"
-    # output_folder = "../data/"
     appendix = "2023_calendar"
 
     # generate calendar names
@@ -31,7 +29,7 @@ def sbk_main():
         names.append(c)
         names.append(c + "_filtered")
 
-    cc.create_calendars(output_folder, names, appendix)
+    cc.create_calendars(output_dir, names, appendix)
 
     r = requests.get(url)
     print(r.url)
@@ -144,4 +142,4 @@ def sbk_main():
 
         print("")
 
-    cc.write_calendars(output_folder, appendix)
+    cc.write_calendars(output_dir, appendix)

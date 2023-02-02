@@ -4,7 +4,7 @@ import sys
 from .calendar_common import CalendarCommon
 
 
-def gp_main():
+def gp_main(output_dir):
     cc = CalendarCommon()
     host = "https://www.motogp.com"
     calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
@@ -19,7 +19,7 @@ def gp_main():
         names.append(c)
         names.append(c + "_filtered")
 
-    cc.create_calendars(output_folder, names, appendix)
+    cc.create_calendars(output_dir, names, appendix)
 
     r = requests.get(calendar_url)
     print(r.url)
@@ -92,4 +92,4 @@ def gp_main():
         # break
         print("")
 
-    cc.write_calendars(output_folder, appendix)
+    cc.write_calendars(output_dir, appendix)

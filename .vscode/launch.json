@@ -23,6 +23,30 @@
                 "--sbk",
             ],
             "justMyCode": true
-        }
+        },
+        {
+            "name": "Py: motogp out",
+            "type": "python",
+            "request": "launch",
+            "module": "motorsport_calendar_creator",
+            "args": [
+                "--motogp",
+                "-o",
+                "../nixxo.github.io/calendars/motogp/2023",
+            ],
+            "justMyCode": true
+        },
+        {
+            "name": "Py: sbk out",
+            "type": "python",
+            "request": "launch",
+            "module": "motorsport_calendar_creator",
+            "args": [
+                "--sbk",
+                "-o",
+                "../nixxo.github.io/calendars/wsbk/2023",
+            ],
+            "justMyCode": true
+        },
     ]
 }

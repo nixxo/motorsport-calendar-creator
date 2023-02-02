@@ -5,7 +5,7 @@ from ics import Calendar, Event
 class CalendarCommon:
     EXT = ".ics"
     CALS = {}
-    CWD = os.path.dirname(os.path.realpath(__file__))
+    OUT = None
 
     @staticmethod
     def str_enc(string):
@@ -33,15 +33,15 @@ class CalendarCommon:
         return f"{host}/{url}"
 
     def create_calendars(self, output_folder, names, appendix=None):
+        self.OUT = os.path.realpath(output_folder)
+
         if appendix:
-            appendix = "_" + appendix
-        if not output_folder.endswith("/"):
-            output_folder = output_folder + "/"
+            appendix = f"_{appendix}"
 
         for name in names:
             try:
                 fn = os.path.realpath(
-                    os.path.join(self.CWD, output_folder, f"{name}{appendix}{self.EXT}")
+                    os.path.join(self.OUT, f"{name}{appendix}{self.EXT}")
                 )
                 f = open(fn, "r")
                 self.CALS[name] = Calendar(f.read())
@@ -50,16 +50,13 @@ class CalendarCommon:
                 self.CALS[name] = Calendar()
 
     def write_calendars(self, output_folder, appendix=None):
-        output_folder = os.path.join(self.CWD, output_folder)
-        if not os.path.exists(output_folder):
-            os.mkdir(output_folder)
+        if not os.path.exists(self.OUT):
+            os.mkdir(self.OUT)
 
         if appendix:
             appendix = "_" + appendix
         for cal in self.CALS:
-            fn = os.path.realpath(
-                os.path.join(output_folder, f"{cal}{appendix}{self.EXT}")
-            )
+            fn = os.path.realpath(os.path.join(self.OUT, f"{cal}{appendix}{self.EXT}"))
             with open(fn, "w") as my_file:
                 my_file.write(self.CALS[cal].serialize())
 
