@@ -1,21 +1,19 @@
 import datetime
 import requests
 import sys
-
-import calendar_common as cc
-
-
-host = "https://www.motogp.com"
-calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
-sess_filter = ["Q1", "Q2", "RAC"]
-sess_exclude = ["VIDEO", "SHOW", "PRESS"]
-classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
-output_folder = "../data/"
-appendix = "2023_calendar"
+from .calendar_common import CalendarCommon
 
 
-def main():
-
+def gp_main():
+    cc = CalendarCommon()
+    host = "https://www.motogp.com"
+    calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
+    sess_filter = ["Q1", "Q2", "SPR", "RAC"]
+    sess_exclude = ["VIDEO", "SHOW", "PRESS"]
+    classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
+    output_folder = "../../nixxo.github.io/calendars/motogp/2023/"
+    # output_folder = "../data/"
+    appendix = "2023_calendar"
     names = []
     for c in classes:
         names.append(c)
@@ -75,7 +73,9 @@ def main():
             sess_end = datetime.datetime.strptime(
                 session.get("date_end"), "%Y-%m-%dT%H:%M:%S%z"
             )
-
+            # moto3 qualy error: reported to motogp twitter
+            # if sess_end < sess_start:
+            #    sess_start = sess_start.replace(hour=sess_start.hour - 1)
             e = cc.create_event(
                 f"[{clas}] {sess}",
                 f"Event: {title}\nClass: {clas}\nSession: {sess_full}",
@@ -93,6 +93,3 @@ def main():
         print("")
 
     cc.write_calendars(output_folder, appendix)
-
-
-main()

@@ -1,103 +1,104 @@
 import os
 from ics import Calendar, Event
 
-cals = {}
-ext = ".ics"
-cwd = os.path.dirname(os.path.realpath(__file__))
 
+class CalendarCommon:
+    EXT = ".ics"
+    CALS = {}
+    CWD = os.path.dirname(os.path.realpath(__file__))
 
-def str_enc(string):
-    for s in string.splitlines():
-        yield f"{s}\n"
+    @staticmethod
+    def str_enc(string):
+        final = []
+        for s in string.splitlines():
+            final.append(f"{s}\n")
+        return final
 
-
-def enc_str(s):
-    try:
-        s = s.encode("utf-8").decode("cp1252")
-    except Exception:
-        s = s
-    return s
-
-
-def check_url(url, host):
-    if url.startswith("http"):
-        return url
-    if host.endswith("/"):
-        host = host.rstrip("/")
-    if url.startswith("/"):
-        url = url.lstrip("/")
-    return f"{host}/{url}"
-
-
-def create_calendars(output_folder, names, appendix=None):
-    if appendix:
-        appendix = "_" + appendix
-    if not output_folder.endswith("/"):
-        output_folder = output_folder + "/"
-
-    for name in names:
+    @staticmethod
+    def enc_str(s):
         try:
-            fn = os.path.realpath(
-                os.path.join(cwd, output_folder, f"{name}{appendix}{ext}")
-            )
-            f = open(fn, "r")
-            cals[name] = Calendar(f.read())
-            f.close()
+            s = s.encode("utf-8").decode("cp1252")
         except Exception:
-            cals[name] = Calendar()
+            s = s
+        return s
 
+    @staticmethod
+    def check_url(url, host):
+        if url.startswith("http"):
+            return url
+        if host.endswith("/"):
+            host = host.rstrip("/")
+        if url.startswith("/"):
+            url = url.lstrip("/")
+        return f"{host}/{url}"
 
-def write_calendars(output_folder, appendix=None):
+    def create_calendars(self, output_folder, names, appendix=None):
+        if appendix:
+            appendix = "_" + appendix
+        if not output_folder.endswith("/"):
+            output_folder = output_folder + "/"
 
-    output_folder = os.path.join(cwd, output_folder)
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
+        for name in names:
+            try:
+                fn = os.path.realpath(
+                    os.path.join(self.CWD, output_folder, f"{name}{appendix}{self.EXT}")
+                )
+                f = open(fn, "r")
+                self.CALS[name] = Calendar(f.read())
+                f.close()
+            except Exception:
+                self.CALS[name] = Calendar()
 
-    if appendix:
-        appendix = "_" + appendix
-    for cal in cals:
-        fn = os.path.realpath(os.path.join(output_folder, f"{cal}{appendix}{ext}"))
-        with open(fn, "w") as my_file:
-            my_file.write(cals[cal].serialize())
+    def write_calendars(self, output_folder, appendix=None):
+        output_folder = os.path.join(self.CWD, output_folder)
+        if not os.path.exists(output_folder):
+            os.mkdir(output_folder)
 
+        if appendix:
+            appendix = "_" + appendix
+        for cal in self.CALS:
+            fn = os.path.realpath(
+                os.path.join(output_folder, f"{cal}{appendix}{self.EXT}")
+            )
+            with open(fn, "w") as my_file:
+                my_file.write(self.CALS[cal].serialize())
 
-def create_event(summary, description, location, url, begin, end):
-    e = Event()
-    e.summary = summary
-    e.description = description
-    e.location = location
-    e.url = url
-    e.begin = begin
-    e.end = end
-    return e
+    def create_event(self, summary, description, location, url, begin, end):
+        e = Event()
+        e.summary = summary
+        e.description = description
+        e.location = location
+        e.url = url
+        e.begin = begin
+        e.end = end
+        return e
 
-
-def add_if_new(clas, evt):
-    found = False
-    i = 0
-    for e in cals[clas].events:
-        if (
-            e.summary == evt.summary
-            and e.description == evt.description
-            and e.location == e.location
-            and e.begin == evt.begin
-            and e.end == evt.end
-            and e.url == evt.url
-        ):
-            found = True
-            break
-        if e.summary == evt.summary and e.location == evt.location:
-            cals[clas].events[i].description = evt.description
-            cals[clas].events[i].url = evt.url
-            # clear end time to avoid errors
-            cals[clas].events[i].end = None
-            cals[clas].events[i].begin = evt.begin
-            if evt.begin != evt.end:
-                cals[clas].events[i].end = evt.end
-            found = True
-            print("UPDATED")
-            break
-        i = i + 1
-    if not found:
-        print("NEW EVENT")
-        cals[clas].events.append(evt)
+    def add_if_new(self, clas, evt):
+        found = False
+        i = 0
+        for e in self.CALS[clas].events:
+            if (
+                e.summary == evt.summary
+                and e.description == evt.description
+                and e.location == e.location
+                and e.begin == evt.begin
+                and e.end == evt.end
+                and e.url == evt.url
+            ):
+                found = True
+                break
+            if e.summary == evt.summary and e.location == evt.location:
+                self.CALS[clas].events[i].description = evt.description
+                self.CALS[clas].events[i].url = evt.url
+                # clear end time to avoid errors
+                self.CALS[clas].events[i].end = None
+                self.CALS[clas].events[i].begin = evt.begin
+                if evt.begin != evt.end:
+                    self.CALS[clas].events[i].end = evt.end
+                found = True
+                print("UPDATED")
+                break
+            i = i + 1
+        if not found:
+            print("NEW EVENT")
+            self.CALS[clas].events.append(evt)

@@ -3,27 +3,27 @@ import requests
 import sys
 from bs4 import BeautifulSoup
 
-import calendar_common as cc
+from .calendar_common import CalendarCommon
 
 
-output_folder = "../data/"
-appendix = "2023_calendar"
+def sbk_main():
+    cc = CalendarCommon()
 
+    def has_data_time(tag):
+        return (
+            tag.has_attr("data_ini")
+            or tag.has_attr("data-ini-time")
+            or tag.has_attr("data_end")
+        )
 
-def has_data_time(tag):
-    return (
-        tag.has_attr("data_ini")
-        or tag.has_attr("data-ini-time")
-        or tag.has_attr("data_end")
-    )
-
-
-def main():
     host = "https://www.worldsbk.com"
     url = cc.check_url("/en/calendar", host)
     sess_filter = ["Superpole", "Superpole Race", "Race", "Race 1", "Race 2"]
     # sess_filter_on = True
     classes = ["R3 bLU cRU Cup", "WorldSSP300", "WorldSSP", "WorldSBK"]
+    output_folder = "../../nixxo.github.io/calendars/wsbk/2023/"
+    # output_folder = "../data/"
+    appendix = "2023_calendar"
 
     # generate calendar names
     names = []
@@ -127,9 +127,12 @@ def main():
                         pass
                         # print(tim.attrs[k])
             e = cc.create_event(
-                cc.enc_str(f"[{clas}] {sess}"),
-                cc.enc_str(f"Event: {title}\nClass: {clas}\nSession: {sess}"),
-                cc.enc_str(circuit),
+                f"[{clas}] {sess}",
+                f"Event: {title}\nClass: {clas}\nSession: {sess}",
+                circuit,
+                # cc.enc_str(f"[{clas}] {sess}"),
+                # cc.enc_str(f"Event: {title}\nClass: {clas}\nSession: {sess}"),
+                # cc.enc_str(circuit),
                 cc.check_url(link["href"], host),
                 tm.get("data_ini"),
                 tm.get("data_end"),
@@ -142,6 +145,3 @@ def main():
         print("")
 
     cc.write_calendars(output_folder, appendix)
-
-
-main()
