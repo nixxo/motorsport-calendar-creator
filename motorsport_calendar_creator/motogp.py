@@ -8,11 +8,9 @@ def gp_main(output_dir):
     cc = CalendarCommon()
     host = "https://www.motogp.com"
     calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
-    sess_filter = ["Q1", "Q2", "SPR", "RAC"]
+    sess_filter = ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]
     sess_exclude = ["VIDEO", "SHOW", "PRESS"]
     classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
-    output_folder = "../../nixxo.github.io/calendars/motogp/2023/"
-    # output_folder = "../data/"
     appendix = "2023_calendar"
     names = []
     for c in classes:
