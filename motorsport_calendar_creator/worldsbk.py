@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup
 from .calendar_common import CalendarCommon
 
 
-def sbk_main(output_dir):
-    cc = CalendarCommon()
+def sbk_main(output_dir, debug=False):
+    cc = CalendarCommon(debug=debug)
 
     def has_data_time(tag):
         return (
@@ -18,21 +18,28 @@ def sbk_main(output_dir):
 
     host = "https://www.worldsbk.com"
     url = cc.check_url("/en/calendar", host)
-    sess_filter = ["Superpole", "Superpole Race", "Race", "Race 1", "Race 2"]
+    calendar_filter = [
+        {
+            "appendix": "filtered",
+            "filter": ["Superpole", "Superpole Race", "Race", "Race 1", "Race 2"],
+        },
+    ]
     # sess_filter_on = True
-    classes = ["R3 bLU cRU Cup", "WorldSSP300", "WorldSSP", "WorldSBK"]
+    classes = ["R3 bLU cRU Champ", "WorldSSP300", "WorldSSP", "WorldSBK"]
     appendix = "2023_calendar"
 
     # generate calendar names
     names = []
     for c in classes:
         names.append(c)
-        names.append(c + "_filtered")
+        for f in calendar_filter:
+            names.append(f"{c}_{f['appendix']}")
 
     cc.create_calendars(output_dir, names, appendix)
 
     r = requests.get(url)
-    print(r.url)
+    if debug:
+        print(r.url)
 
     if r.status_code != 200:
         print("no connection")
@@ -43,6 +50,7 @@ def sbk_main(output_dir):
 
     # extract events
     events = page.find_all("a", class_="track-link")
+    updates = False
 
     print(f"Found {len(events)} events in the calendar.")
     for link in events or []:
@@ -69,7 +77,8 @@ def sbk_main(output_dir):
 
         # event name
         title = page.find("h2", class_="country-flag").get_text().strip()
-        print(title)
+        if debug:
+            print(title)
 
         # circuit name / location
         circuit_info_page = page.find(id="destination-iframe")["src"]
@@ -91,8 +100,10 @@ def sbk_main(output_dir):
 
         # sessions
         sessions = page.find_all("div", class_="timeIso")
-        print(f"Found {len(sessions)} sessions in the event.")
-        # print(sessions)
+        if debug:
+            print(f"Found {len(sessions)} sessions in the event.")
+
+        flag = False
 
         for session in sessions:
             # class / session
@@ -106,7 +117,7 @@ def sbk_main(output_dir):
             sess = sess.strip()
             if clas not in classes:
                 continue
-            print(f"{clas} {sess}")
+            # print(f"{clas} {sess}")
 
             # Session start/end
             times = session.find_all(has_data_time)
@@ -128,18 +139,18 @@ def sbk_main(output_dir):
                 f"[{clas}] {sess}",
                 f"Event: {title}\nClass: {clas}\nSession: {sess}",
                 circuit,
-                # cc.enc_str(f"[{clas}] {sess}"),
-                # cc.enc_str(f"Event: {title}\nClass: {clas}\nSession: {sess}"),
-                # cc.enc_str(circuit),
                 cc.check_url(link["href"], host),
                 tm.get("data_ini"),
                 tm.get("data_end"),
             )
-            cc.add_if_new(clas, e)
+            flag = cc.add_if_new(clas, e) or flag
 
-            if sess in sess_filter:
-                cc.add_if_new(f"{clas}_filtered", e)
+            for f in calendar_filter:
+                if sess in f["filter"]:
+                    flag = cc.add_if_new(f"{clas}_{f['appendix']}", e) or flag
 
-        print("")
+        updates = flag or updates
+        print(f'{"Event updated" if flag else "No updates found"}\n')
+    print(f'\n{"Calendar UPDATED" if updates else "No updates to the calendar"}')
 
     cc.write_calendars(output_dir, appendix)

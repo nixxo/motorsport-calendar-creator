@@ -4,18 +4,23 @@ import sys
 from .calendar_common import CalendarCommon
 
 
-def gp_main(output_dir):
-    cc = CalendarCommon()
+def gp_main(output_dir, debug=False):
+    cc = CalendarCommon(debug=debug)
     host = "https://www.motogp.com"
     calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
-    sess_filter = ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]
+
+    calendar_filter = [
+        {"appendix": "filtered", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
+        {"appendix": "sprint-and-race", "filter": ["SPR", "RAC", "RAC1", "RAC2"]},
+    ]
     sess_exclude = ["VIDEO", "SHOW", "PRESS"]
     classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
     appendix = "2023_calendar"
     names = []
     for c in classes:
         names.append(c)
-        names.append(c + "_filtered")
+        for f in calendar_filter:
+            names.append(f"{c}_{f['appendix']}")
 
     cc.create_calendars(output_dir, names, appendix)
 
@@ -28,6 +33,7 @@ def gp_main(output_dir):
 
     events = r.json()
     events = events.get("events") or []
+    updates = False
 
     print(f"Found {len(events)} events in the calendar.")
     for event in events or []:
@@ -35,7 +41,8 @@ def gp_main(output_dir):
         print(f"Loading {event.get('hashtag')}...")
         # event name
         title = event.get("name").strip()
-        print(title)
+        if debug:
+            print(title)
 
         # circuit name / location
         if not event.get("circuit"):
@@ -43,12 +50,15 @@ def gp_main(output_dir):
             continue
 
         circuit = f"{event['circuit'].get('name')} - {event['circuit'].get('city')}"
-        print(circuit)
+        if debug:
+            print(circuit)
 
         # sessions
         sessions = event.get("broadcasts")
-        print(f"Found {len(sessions)} sessions in the event.")
-        # print(sessions)
+        if debug:
+            print(f"Found {len(sessions)} sessions in the event.")
+
+        flag = False
 
         for session in sessions:
             # Category Name
@@ -60,9 +70,9 @@ def gp_main(output_dir):
             sess = session.get("shortname").strip()
 
             if sess in sess_exclude:
-                print(f"{clas} {sess} {sess_full} skipped.")
+                # print(f"{clas} {sess} {sess_full} skipped.")
                 continue
-            print(f"{clas} {sess} {sess_full}")
+            # print(f"{clas} {sess} {sess_full}")
             # Session start/end
 
             sess_start = datetime.datetime.strptime(
@@ -71,9 +81,6 @@ def gp_main(output_dir):
             sess_end = datetime.datetime.strptime(
                 session.get("date_end"), "%Y-%m-%dT%H:%M:%S%z"
             )
-            # moto3 qualy error: reported to motogp twitter
-            # if sess_end < sess_start:
-            #    sess_start = sess_start.replace(hour=sess_start.hour - 1)
             e = cc.create_event(
                 f"[{clas}] {sess}",
                 f"Event: {title}\nClass: {clas}\nSession: {sess_full}",
@@ -82,12 +89,18 @@ def gp_main(output_dir):
                 sess_start,
                 sess_end,
             )
-            cc.add_if_new(clas, e)
+            flag = cc.add_if_new(clas, e) or flag
 
-            if sess in sess_filter:
-                cc.add_if_new(f"{clas}_filtered", e)
+            for f in calendar_filter:
+                if sess in f["filter"]:
+                    flag = cc.add_if_new(f"{clas}_{f['appendix']}", e) or flag
 
-        # break
-        print("")
+        updates = flag or updates
+        print(f'{"Event updated" if flag else "No updates found"}\n')
 
+    for clas in classes:
+        updates = not cc.same_size(clas) or updates
+    print(f'\n{"Calendar UPDATED" if updates else "No updates to the calendar"}')
+
+    # cc.clean_calendars()
     cc.write_calendars(output_dir, appendix)

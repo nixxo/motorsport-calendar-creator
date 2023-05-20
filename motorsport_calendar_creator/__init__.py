@@ -20,6 +20,11 @@ def main():
     parser.add_argument(
         "--sbk", action="store_true", help="process worldsbk.com website"
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="print out debug info while processing data",
+    )
     parser.add_argument("-o", "--output-dir", help="output directory")
     parser.add_argument("--version", action="version", version=__version__)
     args = parser.parse_args()
@@ -27,6 +32,6 @@ def main():
     ROOT_DIR = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
     output_dir = os.path.realpath(args.output_dir or f"{ROOT_DIR}/../data")
     if args.motogp:
-        gp_main(output_dir)
+        gp_main(output_dir, args.debug)
     if args.sbk:
-        sbk_main(output_dir)
+        sbk_main(output_dir, args.debug)
