@@ -1,13 +1,18 @@
 import datetime
+import re
 import requests
 import sys
+from bs4 import BeautifulSoup
+
 from .calendar_common import CalendarCommon
 
 
 def gp_main(output_dir, debug=False):
     cc = CalendarCommon(debug=debug)
     host = "https://www.motogp.com"
-    calendar_url = "https://www.motogp.com/api/calendar-front/be/events-api/api/v1/business-unit/mgp/season/2023/events?type=SPORT&kind=GP"  # noqa: E501
+
+    calendar_url = "https://www.motogp.com/en/calendar"
+    event_api = "https://api.motogp.pulselive.com/motogp/v1/events/"
 
     calendar_filter = [
         {"appendix": "filtered", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
@@ -31,13 +36,39 @@ def gp_main(output_dir, debug=False):
         print("no connection")
         sys.exit()
 
-    events = r.json()
-    events = events.get("events") or []
+    # parse calendar webpage
+    page = BeautifulSoup(r.text, "html.parser")
+    events = page.find_all("a", class_="calendar-listing__event")
+
     updates = False
 
     print(f"Found {len(events)} events in the calendar.")
-    for event in events or []:
-        # print(link['href'])
+    for link in events or []:
+        if (
+            link.find("div", class_="calendar-listing__status-type")
+            .get_text()
+            .strip()
+            .lower()
+            == "test"
+        ):
+            if debug:
+                print("skipping test")
+            continue
+        eid = re.search(r"(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})", link.attrs["href"]).group(
+            0
+        )
+
+        if debug:
+            print(f"{event_api}{eid}")
+
+        e = requests.get(f"{event_api}{eid}")
+        if e.status_code != 200:
+            if not debug:
+                print(f"{event_api}{eid}")
+            print("no connection, skipping")
+            continue
+
+        event = e.json()
         print(f"Loading {event.get('hashtag')}...")
         # event name
         title = event.get("name").strip()
@@ -102,5 +133,4 @@ def gp_main(output_dir, debug=False):
         updates = not cc.same_size(clas) or updates
     print(f'\n{"Calendar UPDATED" if updates else "No updates to the calendar"}')
 
-    # cc.clean_calendars()
     cc.write_calendars(output_dir, appendix)
