@@ -7,6 +7,66 @@ from bs4 import BeautifulSoup
 from .calendar_common import CalendarCommon
 
 
+class MotoGP:
+    cc = None
+    debug = False
+    host = "https://www.motogp.com"
+    calendar_url = f"{host}/en/calendar"
+    event_api = "https://api.motogp.pulselive.com/motogp/v1/events/"
+    calendar_filter = [
+        {"appendix": "filtered", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
+        {"appendix": "sprint-and-race", "filter": ["SPR", "RAC", "RAC1", "RAC2"]},
+    ]
+    sess_exclude = ["VIDEO", "SHOW", "PRESS"]
+    classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
+    appendix = "2024_calendar"
+
+    def __init__(self, output_dir, debug=False):
+        names = []
+        self.debug = debug
+        cc = CalendarCommon(debug=debug)
+        for c in self.classes:
+            names.append(c)
+            for f in self.calendar_filter:
+                names.append(f"{c}_{f['appendix']}")
+
+        cc.create_calendars(output_dir, names, self.appendix)
+
+    def get_events_links(self):
+        events_links = []
+        r = requests.get(self.calendar_url)
+        print(r.url)
+
+        if r.status_code != 200:
+            print("no connection")
+            sys.exit()
+
+        # parse calendar webpage
+        page = BeautifulSoup(r.text, "html.parser")
+        events = page.find_all("a", class_="calendar-listing__event")
+
+        print(f"Found {len(events)} events in the calendar.")
+        for link in events or []:
+            if (
+                link.find("div", class_="calendar-listing__status-type")
+                .get_text()
+                .strip()
+                .lower()
+                == "test"
+            ):
+                if self.debug:
+                    print("skipping test")
+                continue
+            eid = re.search(
+                r"(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})", link.attrs["href"]
+            ).group(0)
+
+            if self.debug:
+                print(f"{self.event_api}{eid}")
+            events_links.append(f"{self.event_api}{eid}")
+        return events_links
+
+
 def gp_main(output_dir, debug=False):
     cc = CalendarCommon(debug=debug)
     host = "https://www.motogp.com"
@@ -15,12 +75,12 @@ def gp_main(output_dir, debug=False):
     event_api = "https://api.motogp.pulselive.com/motogp/v1/events/"
 
     calendar_filter = [
-        {"appendix": "filtered", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
+        {"appendix": "qualy-and-races", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
         {"appendix": "sprint-and-race", "filter": ["SPR", "RAC", "RAC1", "RAC2"]},
     ]
     sess_exclude = ["VIDEO", "SHOW", "PRESS"]
     classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
-    appendix = "2023_calendar"
+    appendix = "2024_calendar"
     names = []
     for c in classes:
         names.append(c)
@@ -69,7 +129,7 @@ def gp_main(output_dir, debug=False):
             continue
 
         event = e.json()
-        print(f"Loading {event.get('hashtag')}...")
+        print(f"Loading #{event.get('url')}...")
         # event name
         title = event.get("name").strip()
         if debug:

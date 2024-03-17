@@ -1,6 +1,6 @@
 import argparse
 import os
-from .motogp import gp_main
+from .motogp import MotoGP, gp_main
 from .worldsbk import sbk_main
 
 global ROOT_DIR
@@ -32,6 +32,9 @@ def main():
     ROOT_DIR = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
     output_dir = os.path.realpath(args.output_dir or f"{ROOT_DIR}/../data")
     if args.motogp:
+        # mgp = MotoGP(output_dir, args.debug)
+        # events = mgp.get_events_links()
+        # pass
         gp_main(output_dir, args.debug)
     if args.sbk:
         sbk_main(output_dir, args.debug)

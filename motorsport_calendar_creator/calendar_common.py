@@ -49,7 +49,8 @@ class CalendarCommon:
         ):
             return 1  # identical
         if e.summary == evt.summary and (
-            e.location == evt.location or e.url == evt.url
+            (e.location == evt.location and e.location != '') or (
+                e.url == evt.url)
         ):
             return 0  # similar
         return -1  # different
@@ -81,7 +82,9 @@ class CalendarCommon:
         for cal in self.CALS_NEW:
             fn = os.path.realpath(os.path.join(self.OUT, f"{cal}{appendix}{self.EXT}"))
             with open(fn, "w") as my_file:
-                my_file.write(self.CALS_NEW[cal].serialize())
+                for line in self.CALS_NEW[cal]:
+                    if not line.startswith('RRULE:'): #  fix #2: o365 import
+                        _ = my_file.write(line)
 
     def create_event(self, summary, description, location, url, begin, end):
         e = Event()

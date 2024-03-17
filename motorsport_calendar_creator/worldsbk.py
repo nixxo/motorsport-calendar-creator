@@ -23,10 +23,14 @@ def sbk_main(output_dir, debug=False):
             "appendix": "filtered",
             "filter": ["Superpole", "Superpole Race", "Race", "Race 1", "Race 2"],
         },
+        {
+            "appendix": "races",
+            "filter": ["Race", "Race 1", "Race 2"],
+        },
     ]
     # sess_filter_on = True
-    classes = ["R3 bLU cRU Champ", "WorldSSP300", "WorldSSP", "WorldSBK"]
-    appendix = "2023_calendar"
+    classes = ["R3 bLU cRU Champ", "WorldSSP300", "WorldSSP", "WorldSBK", "WorldWCR"]
+    appendix = "2024_calendar"
 
     # generate calendar names
     names = []
@@ -53,7 +57,11 @@ def sbk_main(output_dir, debug=False):
     updates = False
 
     print(f"Found {len(events)} events in the calendar.")
+    contatore = 1
+
+
     for link in events or []:
+        circuit = None
         loc = link.find("h2").get_text().strip()
 
         # skip non-event link
@@ -81,22 +89,24 @@ def sbk_main(output_dir, debug=False):
             print(title)
 
         # circuit name / location
-        circuit_info_page = page.find(id="destination-iframe")["src"]
-        # print(circuit_info_page)
-        r = requests.get(circuit_info_page)
-        if r.status_code != 200:
-            print(f'no connection for: {link["href"]}')
-            continue
-        info_page = BeautifulSoup(r.text, "html.parser")
-
-        circuit = info_page.find(
-            "h2", class_="c-widget__title--primary"
-        ) or info_page.find("h2", class_="c-widget__title--secondary")
-
-        if circuit:
-            circuit = circuit.get_text().strip()
-        else:
+        if not page.find(id="destination-iframe"):
             circuit = ""
+        else:
+            circuit_info_page = page.find(id="destination-iframe")["src"]
+            # print(circuit_info_page)
+            r = requests.get(circuit_info_page)
+            if r.status_code != 200:
+                print(f'no connection for: {link["href"]}')
+                continue
+            info_page = BeautifulSoup(r.text, "html.parser")
+
+            circuit = info_page.find(
+                "h2", class_="c-widget__title--primary"
+            ) or info_page.find("h2", class_="c-widget__title--secondary")
+            if circuit:
+                circuit = circuit.get_text().strip()
+            else:
+                circuit = ""
 
         # sessions
         sessions = page.find_all("div", class_="timeIso")
@@ -151,6 +161,12 @@ def sbk_main(output_dir, debug=False):
 
         updates = flag or updates
         print(f'{"Event updated" if flag else "No updates found"}\n')
+        
+        if contatore == 13:
+            break
+        else:
+            contatore += 1
+
     print(f'\n{"Calendar UPDATED" if updates else "No updates to the calendar"}')
 
     cc.write_calendars(output_dir, appendix)
