@@ -29,8 +29,8 @@ def sbk_main(output_dir, debug=False):
         },
     ]
     # sess_filter_on = True
-    classes = ["R3 bLU cRU Champ", "WorldSSP300", "WorldSSP", "WorldSBK", "WorldWCR"]
-    appendix = "2024_calendar"
+    classes = ["R3 BLU CRU World Cup", "WorldSSP300", "WorldSSP", "WorldSBK", "WorldWCR"]
+    appendix = "2025_calendar"
 
     # generate calendar names
     names = []
@@ -58,7 +58,6 @@ def sbk_main(output_dir, debug=False):
 
     print(f"Found {len(events)} events in the calendar.")
     contatore = 1
-
 
     for link in events or []:
         circuit = None
@@ -161,7 +160,7 @@ def sbk_main(output_dir, debug=False):
 
         updates = flag or updates
         print(f'{"Event updated" if flag else "No updates found"}\n')
-        
+
         if contatore == 13:
             break
         else:

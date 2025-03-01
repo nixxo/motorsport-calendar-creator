@@ -12,25 +12,53 @@ class MotoGP:
     debug = False
     host = "https://www.motogp.com"
     calendar_url = f"{host}/en/calendar"
+    calendar_url_json = "https://api.pulselive.motogp.com/motogp/v1/events?seasonYear=2025"
+    event_base_url = "/en/calendar/2025/event/"
     event_api = "https://api.motogp.pulselive.com/motogp/v1/events/"
     calendar_filter = [
-        {"appendix": "filtered", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
+        {"appendix": "qualy-and-races", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
         {"appendix": "sprint-and-race", "filter": ["SPR", "RAC", "RAC1", "RAC2"]},
     ]
     sess_exclude = ["VIDEO", "SHOW", "PRESS"]
     classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
-    appendix = "2024_calendar"
+    appendix = "2025_calendar"
+    updates = False
 
     def __init__(self, output_dir, debug=False):
         names = []
         self.debug = debug
-        cc = CalendarCommon(debug=debug)
+        self.cc = CalendarCommon(debug=debug)
         for c in self.classes:
             names.append(c)
             for f in self.calendar_filter:
                 names.append(f"{c}_{f['appendix']}")
 
-        cc.create_calendars(output_dir, names, self.appendix)
+        self.cc.create_calendars(output_dir, names, self.appendix)
+
+    def get_events(self):
+        e = requests.get(self.calendar_url_json)
+        print(e.url)
+
+        if e.status_code != 200:
+            print("no connection")
+            sys.exit()
+
+        events = e.json()
+        print(f"Found {len(events)} events in the calendar.")
+
+        for event in events:
+            if event.get("kind") != "GP":
+                if self.debug:
+                    print(f'Skipping {event.get("name")}')
+                continue
+            print(f"Loading {event.get('hashtag')}...")
+            self.get_event_schedule(event)
+
+
+
+
+
+        pass
 
     def get_events_links(self):
         events_links = []
@@ -43,7 +71,7 @@ class MotoGP:
 
         # parse calendar webpage
         page = BeautifulSoup(r.text, "html.parser")
-        events = page.find_all("a", class_="calendar-listing__event")
+        events = page.find_all("a", class_="calendar-listing__event", limit=25)
 
         print(f"Found {len(events)} events in the calendar.")
         for link in events or []:
@@ -66,131 +94,94 @@ class MotoGP:
             events_links.append(f"{self.event_api}{eid}")
         return events_links
 
-
-def gp_main(output_dir, debug=False):
-    cc = CalendarCommon(debug=debug)
-    host = "https://www.motogp.com"
-
-    calendar_url = "https://www.motogp.com/en/calendar"
-    event_api = "https://api.motogp.pulselive.com/motogp/v1/events/"
-
-    calendar_filter = [
-        {"appendix": "qualy-and-races", "filter": ["Q1", "Q2", "SPR", "RAC", "RAC1", "RAC2"]},
-        {"appendix": "sprint-and-race", "filter": ["SPR", "RAC", "RAC1", "RAC2"]},
-    ]
-    sess_exclude = ["VIDEO", "SHOW", "PRESS"]
-    classes = ["Moto3", "Moto2", "MotoGP", "MotoE"]
-    appendix = "2024_calendar"
-    names = []
-    for c in classes:
-        names.append(c)
-        for f in calendar_filter:
-            names.append(f"{c}_{f['appendix']}")
-
-    cc.create_calendars(output_dir, names, appendix)
-
-    r = requests.get(calendar_url)
-    print(r.url)
-
-    if r.status_code != 200:
-        print("no connection")
-        sys.exit()
-
-    # parse calendar webpage
-    page = BeautifulSoup(r.text, "html.parser")
-    events = page.find_all("a", class_="calendar-listing__event")
-
-    updates = False
-
-    print(f"Found {len(events)} events in the calendar.")
-    for link in events or []:
-        if (
-            link.find("div", class_="calendar-listing__status-type")
-            .get_text()
-            .strip()
-            .lower()
-            == "test"
-        ):
-            if debug:
-                print("skipping test")
-            continue
-        eid = re.search(r"(\w{8}-\w{4}-\w{4}-\w{4}-\w{12})", link.attrs["href"]).group(
-            0
-        )
-
-        if debug:
-            print(f"{event_api}{eid}")
-
-        e = requests.get(f"{event_api}{eid}")
+    def get_event_schedule_from_link(self, link):
+        e = requests.get(link)
         if e.status_code != 200:
-            if not debug:
-                print(f"{event_api}{eid}")
+            if not self.debug:
+                print(link)
             print("no connection, skipping")
-            continue
+            return
 
         event = e.json()
         print(f"Loading #{event.get('url')}...")
+        self.get_event_schedule(event)
+
+    def get_event_schedule(self, event):
         # event name
-        title = event.get("name").strip()
-        if debug:
+        title = f'{event.get("kind")}{event.get("sequence")} - {event.get("name").strip()}'
+        if self.debug:
             print(title)
 
         # circuit name / location
         if not event.get("circuit"):
             print("NO CIRCUIT INFO - ABORTING")
-            continue
+            return
 
         circuit = f"{event['circuit'].get('name')} - {event['circuit'].get('city')}"
-        if debug:
+        if self.debug:
             print(circuit)
+
+        hashtag = event.get('hashtag')
+        if self.debug:
+            print(hashtag)
 
         # sessions
         sessions = event.get("broadcasts")
-        if debug:
+        if self.debug:
             print(f"Found {len(sessions)} sessions in the event.")
-
+        
         flag = False
 
         for session in sessions:
             # Category Name
             clas = session["category"]["name"].strip()
-            if clas not in classes:
+            if clas not in self.classes:
                 continue
+
             # Session Name
             sess_full = session.get("name").strip()
             sess = session.get("shortname").strip()
 
-            if sess in sess_exclude:
-                # print(f"{clas} {sess} {sess_full} skipped.")
+            if sess in self.sess_exclude:
+                if self.debug:
+                    print(f"{clas} {sess} {sess_full} skipped.")
                 continue
-            # print(f"{clas} {sess} {sess_full}")
-            # Session start/end
 
+            if self.debug:
+                print(f"{clas} {sess} {sess_full}")
+
+            # Session start/end
             sess_start = datetime.datetime.strptime(
                 session.get("date_start"), "%Y-%m-%dT%H:%M:%S%z"
             )
             sess_end = datetime.datetime.strptime(
                 session.get("date_end"), "%Y-%m-%dT%H:%M:%S%z"
             )
-            e = cc.create_event(
-                f"[{clas}] {sess}",
+            e = self.cc.create_event(
+                #f"[{clas}] {sess}",
+                f"[{clas}] {sess} - {hashtag}",
                 f"Event: {title}\nClass: {clas}\nSession: {sess_full}",
                 circuit,
-                cc.check_url(f'/en/calendar/2023/event/{event.get("url")}', host),
+                self.cc.check_url(
+                    f'{self.event_base_url}{event.get("url").lower().strip()}/{event.get("id").lower()}',
+                    self.host
+                ),
                 sess_start,
                 sess_end,
             )
-            flag = cc.add_if_new(clas, e) or flag
+            flag = self.cc.add_if_new(clas, e) or flag
 
-            for f in calendar_filter:
+            for f in self.calendar_filter:
                 if sess in f["filter"]:
-                    flag = cc.add_if_new(f"{clas}_{f['appendix']}", e) or flag
+                    flag = self.cc.add_if_new(f"{clas}_{f['appendix']}", e) or flag
 
-        updates = flag or updates
+        self.updates = flag or self.updates
         print(f'{"Event updated" if flag else "No updates found"}\n')
 
-    for clas in classes:
-        updates = not cc.same_size(clas) or updates
-    print(f'\n{"Calendar UPDATED" if updates else "No updates to the calendar"}')
+    def write_calendars(self, output_dir, force_write=False):
+        for clas in self.classes:
+            self.updates = not self.cc.same_size(clas) or self.updates
+        print(f'\n{"Calendar UPDATED" if self.updates else "No updates to the calendar"}')
 
-    cc.write_calendars(output_dir, appendix)
+        if self.updates or force_write:
+            self.cc.write_calendars(output_dir, self.appendix)

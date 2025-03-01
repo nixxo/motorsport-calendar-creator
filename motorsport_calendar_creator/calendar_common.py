@@ -52,6 +52,12 @@ class CalendarCommon:
             (e.location == evt.location and e.location != '') or (
                 e.url == evt.url)
         ):
+            # fix for 2 event at the same track
+            if 'Misano' in e.location and e.description != evt.description:
+                return -1
+            # fix for 2 event at the same track
+            if 'Catalunya' in e.location and e.description != evt.description:
+                return -1
             return 0  # similar
         return -1  # different
 
@@ -99,6 +105,8 @@ class CalendarCommon:
 
     def add_if_new(self, clas, evt):
         updated, found = False, False
+        if 'Misano' in evt.location:
+            pass
         i = 0
         for e in self.CALS[clas].events:
             evt_cmp = self.event_compare(e, evt)

@@ -4,16 +4,19 @@
     // Per altre informazioni, visitare: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        {
-            "name": "Py: motogp",
+        /*{
+            "name": "Py: motogp_new",
             "type": "python",
             "request": "launch",
             "module": "motorsport_calendar_creator",
             "args": [
-                "--motogp",
+                "--motogp_new",
+                //"--debug",
+                "-o",
+                "../nixxo.github.io/calendars/motogp/2025",
             ],
             "justMyCode": true
-        },
+        },*/
         {
             "name": "Py: sbk",
             "type": "python",
@@ -26,26 +29,27 @@
         },
         {
             "name": "Py: motogp out",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "motorsport_calendar_creator",
             "args": [
                 "--motogp",
+                // "--debug",
                 "-o",
-                "../nixxo.github.io/calendars/motogp/2024",
+                "../nixxo.github.io/calendars/motogp/2025",
             ],
             "justMyCode": true
         },
         {
             "name": "Py: sbk out",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "module": "motorsport_calendar_creator",
             "args": [
                 "--sbk",
-                "--debug",
+                //"--debug",
                 "-o",
-                "../nixxo.github.io/calendars/wsbk/2024",
+                "../nixxo.github.io/calendars/wsbk/2025",
             ],
             "justMyCode": true
         },
